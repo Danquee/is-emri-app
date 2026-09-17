@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İş Emri Yönetimi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f6f9; font-size: 14px; }
+        .navbar-brand { font-weight: bold; }
+        .badge-open { background-color: #198754; }
+        .badge-closed { background-color: #dc3545; }
+        .card-header { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#"><i class="bi bi-clipboard-data"></i> İş Emri Sistemi</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Çıkış Yap</a>
+    </div>
+</nav>
+
+<div class="container-fluid px-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="row g-3">
+        <!-- Sol Kolon: İş Emri Ekleme -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-plus-circle"></i> Yeni İş Emri Oluştur
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('ekle') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">İş Emri Açıklaması / Talimatlar</label>
+                            <textarea name="aciklama" class="form-control" rows="5" placeholder="Yapılacak işi detaylıca yazın..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 fw-bold"><i class="bi bi-check-lg"></i> İş Emri Kaydet</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ Kolon: İş Emirleri Listesi -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list-task"></i> Mevcut İş Emirleri</span>
+                    <span class="badge bg-light text-dark">{{ is_emirleri|length }} Kayıt</span>
+                </div>
+                <div class="card-body">
+                    <!-- Filtreleme Formu -->
+                    <form method="GET" action="{{ url_for('index') }}" class="row g-2 mb-3 align-items-center">
+                        <div class="col-auto">
+                            <label class="col-form-label fw-bold"><i class="bi bi-funnel"></i> Sıralama / Filtre:</label>
+                        </div>
+                        <div class="col-auto flex-grow-1">
+                            <select name="filtre" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="Tarihe Göre (En Yeni Üstte)" {% if secili_filtre == 'Tarihe Göre (En Yeni Üstte)' %}selected{% endif %}>Tarihe Göre (En Yeni Üstte)</option>
+                                <option value="Tarihe Göre (En Eski Üstte)" {% if secili_filtre == 'Tarihe Göre (En Eski Üstte)' %}selected{% endif %}>Tarihe Göre (En Eski Üstte)</option>
+                                <option value="Önce Açık Olanlar (Açıklar Üstte)" {% if secili_filtre == 'Önce Açık Olanlar (Açıklar Üstte)' %}selected{% endif %}>Önce Açık Olanlar (Açıklar Üstte)</option>
+                                <option value="Önce Kapalı Olanlar (Kapalılar Üstte)" {% if secili_filtre == 'Önce Kapalı Olanlar (Kapalılar Üstte)' %}selected{% endif %}>Önce Kapalı Olanlar (Kapalılar Üstte)</option>
+                                <option value="Sadece Açık İş Emirleri" {% if secili_filtre == 'Sadece Açık İş Emirleri' %}selected{% endif %}>Sadece Açık İş Emirleri</option>
+                                <option value="Sadece Kapalı İş Emirleri" {% if secili_filtre == 'Sadece Kapalı İş Emirleri' %}selected{% endif %}>Sadece Kapalı İş Emirleri</option>
+                            </select>
+                        </div>
+                    </form>
+
+                    <!-- Tablo -->
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>İş Emri No</th>
+                                    <th>Durum</th>
+                                    <th>Zaman Bilgisi</th>
+                                    <th>Açıklama</th>
+                                    <th class="text-center">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emri in is_emirleri %}
+                                <tr>
+                                    <td class="fw-bold">{{ emri.wo_no }}</td>
+                                    <td>
+                                        {% if emri.durum == 'AÇIK' %}
+                                            <span class="badge badge-open">AÇIK</span>
+                                        {% else %}
+                                            <span class="badge badge-closed">KAPATILDI</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="font-size: 12px;">
+                                        <div><strong>Açılış:</strong> {{ emri.tarih }} {{ emri.saat }}</div>
+                                        {% if emri.durum == 'KAPATILDI' %}
+                                            <div class="text-danger"><strong>Kapanış:</strong> {{ emri.kapanis_tarih }} {{ emri.kapanis_saat }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ emri.aciklama }}</td>
+                                    <td class="text-center">
+                                        {% if emri.durum == 'AÇIK' %}
+                                            <a href="{{ url_for('kapat', id=emri.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Bu iş emrini kapatmak istediğinize emin misiniz?');">
+                                                <i class="bi bi-x-circle"></i> Kapat
+                                            </a>
+                                        {% else %}
+                                            <button class="btn btn-secondary btn-sm" disabled><i class="bi bi-check2-circle"></i> Kapalı</button>
+                                        {% endif %}
+                                        <a href="{{ url_for('sil', id=emri.id) }}" class="btn btn-outline-warning btn-sm" onclick="return confirm('Silmek istediğinize emin misiniz?');">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">Henüz kaydedilmiş bir iş emri yok.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
