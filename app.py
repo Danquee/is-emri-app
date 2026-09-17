@@ -9,8 +9,8 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 # --- AYARLAR ---
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "password123"  # Buradan şifrenizi değiştirebilirsiniz
+ADMIN_USERNAME = "GLC"
+ADMIN_PASSWORD = "180289"  # Buradan şifrenizi değiştirebilirsiniz
 
 # --- VERİTABANI KURULUMU ---
 def get_db():
